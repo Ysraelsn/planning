@@ -7,7 +7,7 @@ use App\Http\Requests\UserRequest;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-
+use Illuminate\Http\Request;
 class AuthController extends Controller
 {
     //Función de Registro de Usuario
@@ -44,5 +44,44 @@ class AuthController extends Controller
 
 
         ], 201);
+    }
+
+    //Función para Inicio de Sesión (Login).
+    public function login(Request $request){
+        $loginData = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+
+        ],[
+            'email.required' => 'Email Address is required',
+            'email.email' => 'Email Address is Invalid.',
+            'password.required' => 'Password is required',
+
+        ]);
+
+        if(!auth()->attempt($loginData)){
+            return response()->json([
+                'messsage' => 'Invalid credentials',
+            ],401); 
+        }
+
+        $user = User::where('email', $loginData['email']->firsOrFail());
+
+        $userToken = $user->createToken('authToken') ->plainTextToken;
+
+        return response()->json([
+            'message' => 'Login Successful',
+            'user' => $user,
+            'token' => $userToken,
+        ],200);
+    }
+
+    //Función para un cierre de sesión (Logout)
+    public function logout(){
+        auth()->user()->tokens()->delete();
+
+        return response()->json([
+            'message' => 'User logged out successfully'
+        ],200);
     }
 }
